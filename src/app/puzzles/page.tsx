@@ -111,16 +111,23 @@ export default function PuzzlesPage() {
       {/* Puzzle Grid */}
       <section className="relative z-10 px-8 pb-20">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {puzzles.map((puzzle, index) => (
-            <div
-              key={puzzle.id}
-              className={`relative bg-zinc-900/80 border-2 rounded-lg p-8 transition-all animate-fadeIn ${
-                puzzle.status === "locked"
-                  ? "border-zinc-800 opacity-60"
-                  : "border-zinc-800 hover:border-purple-600 glow-purple-hover cursor-pointer"
-              }`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
+          {puzzles.map((puzzle, index) => {
+            const CardWrapper = puzzle.status === "locked" ? "div" : Link;
+            const cardProps = puzzle.status === "locked"
+              ? {}
+              : { href: `/puzzles/${puzzle.id}` };
+
+            return (
+              <CardWrapper
+                key={puzzle.id}
+                {...cardProps}
+                className={`relative bg-zinc-900/80 border-2 rounded-lg p-8 transition-all animate-fadeIn block ${
+                  puzzle.status === "locked"
+                    ? "border-zinc-800 opacity-60"
+                    : "border-zinc-800 hover:border-purple-600 glow-purple-hover cursor-pointer"
+                }`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
               {/* Hexagon Visual */}
               <div className="relative mb-6">
                 <div
@@ -201,9 +208,9 @@ export default function PuzzlesPage() {
                     UNLOCKS {puzzle.dropDate.toUpperCase()}
                   </div>
                 ) : (
-                  <button className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase text-sm tracking-wider rounded transition-all">
+                  <div className="w-full px-4 py-2 bg-purple-600 text-white font-bold uppercase text-sm tracking-wider rounded transition-all text-center">
                     Access Puzzle
-                  </button>
+                  </div>
                 )}
               </div>
 
@@ -216,8 +223,9 @@ export default function PuzzlesPage() {
                   </div>
                 </div>
               )}
-            </div>
-          ))}
+            </CardWrapper>
+            );
+          })}
         </div>
 
         {/* Access Archive */}
