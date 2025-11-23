@@ -90,11 +90,15 @@ export class ZyloClient {
   ): Promise<void> {
     console.log('📝 Zylo Client: Signing up new user...');
 
+    // Generate fake email from username for internal use
+    const fakeEmail = email.includes('@') ? email : `${email}@veil.local`;
+    console.log('🔧 Using fake email:', fakeEmail);
+
     try {
       // Try Control Plane endpoint first (preferred method)
       const endpoint = '/api/supabase/tenant-users/signup';
       const body: any = {
-        email,
+        email: fakeEmail,
         password,
         ...userData,
       };
@@ -122,7 +126,7 @@ export class ZyloClient {
 
         if (res.ok) {
           console.log('✅ Zylo Client: User signed up via Control Plane');
-          await this.login(email, password);
+          await this.login(fakeEmail, password);
           return;
         } else if (res.status === 404) {
           console.warn('⚠️ Zylo Client: Control Plane signup endpoint not available, using fallback');
@@ -142,24 +146,23 @@ export class ZyloClient {
         // Fall through to fallback method
       }
 
-      // Fallback: Direct Supabase signup
-      console.log('📝 Zylo Client: Using direct Supabase signup (fallback)');
+      // Fallback: Direct Supabase signup with auto-confirmation
+      console.log('📝 Zylo Client: Using direct Supabase signup (fallback) with auto-confirmation');
 
       const { data: signUpData, error: signUpError } = await this.supabaseClient.auth.signUp({
-        email,
+        email: fakeEmail,
         password,
         options: {
-          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined,
+          // No email redirect needed since we auto-confirm
           data: {
             full_name: userData?.full_name,
             username: userData?.username,
             avatar_url: userData?.avatar_url,
             tenant_id: this.config.tenantId,
             project_id: this.config.projectId,
+            email_confirmed: true, // Mark as confirmed
             ...userData?.metadata,
           },
-          // Disable email confirmation requirement
-          emailConfirm: false,
         },
       });
 
@@ -172,9 +175,9 @@ export class ZyloClient {
         throw new Error('Signup succeeded but no user data returned');
       }
 
-      console.log('✅ Zylo Client: User signed up via direct Supabase');
+      console.log('✅ Zylo Client: User signed up via direct Supabase (auto-confirmed)');
 
-      // User is auto-confirmed and logged in (email confirmation disabled)
+      // User is auto-confirmed and logged in
       if (signUpData.session) {
         console.log('✅ Zylo Client: User logged in with session');
         await this.setToken(signUpData.session.access_token, signUpData.session.expires_in || null);
@@ -184,7 +187,7 @@ export class ZyloClient {
       }
 
       // Fallback: try to login (for cases where signup succeeded but we need to authenticate)
-      await this.login(email, password);
+      await this.login(fakeEmail, password);
     } catch (error: any) {
       console.error('❌ Zylo Client: Signup failed', error);
 

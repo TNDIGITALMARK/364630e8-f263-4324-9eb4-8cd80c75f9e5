@@ -39,8 +39,8 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Convert username to internal email format (username@veil.app)
-      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.app`;
+      // Convert username to internal email format (username@veil.local)
+      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
       await auth.login(email, password);
       // Redirect to home on success - customize this as needed
       router.push('/');
