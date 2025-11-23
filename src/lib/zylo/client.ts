@@ -76,7 +76,7 @@ export class ZyloClient {
 
   /**
    * Sign up a new tenant user
-   * Uses SCOPED_ANON token for RLS-protected signup
+   * Uses direct Supabase authentication as fallback when Control Plane endpoints unavailable
    */
   async signUp(
     email: string,
@@ -91,16 +91,14 @@ export class ZyloClient {
     console.log('📝 Zylo Client: Signing up new user...');
 
     try {
-      // Step 1: Call Control Plane signup endpoint
+      // Try Control Plane endpoint first (preferred method)
       const endpoint = '/api/supabase/tenant-users/signup';
-
       const body: any = {
         email,
         password,
         ...userData,
       };
 
-      // Use signed context if available, otherwise use raw IDs
       if (this.config.signedAppContext && this.config.signedAppContext.trim()) {
         body.signedContext = this.config.signedAppContext;
       } else {
@@ -108,24 +106,86 @@ export class ZyloClient {
         body.projectId = this.config.projectId;
       }
 
-      const res = await fetch(`${this.config.controlPlaneUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const fullUrl = `${this.config.controlPlaneUrl}${endpoint}`;
+      console.log('🌐 Zylo Client: Attempting Control Plane signup:', fullUrl);
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `Signup failed: ${res.status} ${res.statusText}`);
+      try {
+        const res = await fetch(fullUrl, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (res.ok) {
+          console.log('✅ Zylo Client: User signed up via Control Plane');
+          await this.login(email, password);
+          return;
+        } else if (res.status === 404) {
+          console.warn('⚠️ Zylo Client: Control Plane signup endpoint not available, using fallback');
+          // Fall through to fallback method
+        } else {
+          const errorData = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(errorData.error || `Signup failed: ${res.status}`);
+        }
+      } catch (networkError: any) {
+        if (networkError.name === 'AbortError') {
+          console.warn('⚠️ Zylo Client: Control Plane timeout, using fallback signup');
+        } else if (networkError.message.includes('Signup failed')) {
+          throw networkError; // Re-throw actual API errors
+        } else {
+          console.warn('⚠️ Zylo Client: Control Plane unreachable, using fallback signup');
+        }
+        // Fall through to fallback method
       }
 
-      console.log('✅ Zylo Client: User signed up successfully');
+      // Fallback: Direct Supabase signup
+      console.log('📝 Zylo Client: Using direct Supabase signup (fallback)');
 
-      // Step 2: Automatically login the user
+      const { data: signUpData, error: signUpError } = await this.supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: userData?.full_name,
+            username: userData?.username,
+            avatar_url: userData?.avatar_url,
+            tenant_id: this.config.tenantId,
+            project_id: this.config.projectId,
+            ...userData?.metadata,
+          },
+        },
+      });
+
+      if (signUpError) {
+        console.error('❌ Zylo Client: Direct Supabase signup failed', signUpError);
+        throw signUpError;
+      }
+
+      if (!signUpData.user) {
+        throw new Error('Signup succeeded but no user data returned');
+      }
+
+      console.log('✅ Zylo Client: User signed up via direct Supabase');
+
+      // Automatically login the user
       await this.login(email, password);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Zylo Client: Signup failed', error);
-      throw error;
+
+      // Provide user-friendly error messages
+      if (error.message.includes('User already registered')) {
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      } else if (error.message.includes('Invalid email')) {
+        throw new Error('Invalid email address. Please check your input.');
+      } else if (error.message.includes('Password')) {
+        throw new Error('Password does not meet requirements. Please use a stronger password.');
+      } else {
+        throw new Error(error.message || 'Account creation failed. Please try again.');
+      }
     }
   }
 
@@ -198,14 +258,25 @@ export class ZyloClient {
       body.projectId = this.config.projectId;
     }
 
-    const res = await fetch(`${this.config.controlPlaneUrl}${endpoint}`, {
+    const fullUrl = `${this.config.controlPlaneUrl}${endpoint}`;
+
+    const res = await fetch(fullUrl, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'accept': 'application/json',
+      },
       body: JSON.stringify(body),
+      // Add timeout for boot requests (15 seconds)
+      signal: AbortSignal.timeout(15000),
+    }).catch((networkError) => {
+      console.error('❌ Network error contacting Control Plane:', networkError);
+      throw new Error('Control Plane unreachable');
     });
 
     if (!res.ok) {
-      throw new Error(`CP /api/supabase/boot failed: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      throw new Error(`CP /api/supabase/boot failed: ${res.status} ${res.statusText} - ${errorText}`);
     }
 
     return await res.json();
@@ -258,18 +329,26 @@ export class ZyloClient {
       body.projectId = this.config.projectId;
     }
 
-    const res = await fetch(`${this.config.controlPlaneUrl}${endpoint}`, {
+    const fullUrl = `${this.config.controlPlaneUrl}${endpoint}`;
+
+    const res = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
+        'accept': 'application/json',
         authorization: `Bearer ${userToken}`,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    }).catch((networkError) => {
+      console.error('❌ Network error during token exchange:', networkError);
+      throw new Error('Unable to complete authentication. Please try again.');
     });
 
     if (!res.ok) {
+      const errorText = await res.text();
       throw new Error(
-        `CP /api/supabase/tenant-users/exchange-token failed: ${res.status} ${res.statusText}`
+        `CP /api/supabase/tenant-users/exchange-token failed: ${res.status} ${res.statusText} - ${errorText}`
       );
     }
 
@@ -292,17 +371,25 @@ export class ZyloClient {
       body.projectId = this.config.projectId;
     }
 
-    const res = await fetch(`${this.config.controlPlaneUrl}${endpoint}`, {
+    const fullUrl = `${this.config.controlPlaneUrl}${endpoint}`;
+
+    const res = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
+        'accept': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000), // 30 seconds for table creation
+    }).catch((networkError) => {
+      console.error('❌ Network error ensuring tenant_users table:', networkError);
+      throw new Error('Unable to initialize user system. Please try again.');
     });
 
     if (!res.ok) {
+      const errorText = await res.text();
       throw new Error(
-        `CP /api/supabase/tenant-users/ensure-table failed: ${res.status} ${res.statusText}`
+        `CP /api/supabase/tenant-users/ensure-table failed: ${res.status} ${res.statusText} - ${errorText}`
       );
     }
 
