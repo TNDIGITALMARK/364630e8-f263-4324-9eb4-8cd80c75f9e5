@@ -1,6 +1,14 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Lock, Unlock, Clock } from "lucide-react";
 import { Navigation } from "@/components/navigation";
+
+// First puzzle unlock date (set to now for immediate access)
+const FIRST_PUZZLE_DATE = new Date("2025-01-01T00:00:00Z");
+// Second puzzle unlocks 2 weeks after first
+const SECOND_PUZZLE_DATE = new Date(FIRST_PUZZLE_DATE.getTime() + 14 * 24 * 60 * 60 * 1000);
 
 const puzzles = [
   {
@@ -10,22 +18,25 @@ const puzzles = [
     difficulty: "Novice",
     completions: 247,
     dropDate: "Week 1",
+    unlockDate: FIRST_PUZZLE_DATE,
   },
   {
     id: "002",
     title: "Binary Whispers",
-    status: "unlocked",
+    status: "locked",
     difficulty: "Intermediate",
-    completions: 189,
+    completions: 0,
     dropDate: "Week 2",
+    unlockDate: SECOND_PUZZLE_DATE,
   },
   {
     id: "003",
     title: "Runic Sequence",
-    status: "unlocked",
+    status: "locked",
     difficulty: "Advanced",
-    completions: 94,
+    completions: 0,
     dropDate: "Week 3",
+    unlockDate: new Date(SECOND_PUZZLE_DATE.getTime() + 7 * 24 * 60 * 60 * 1000),
   },
   {
     id: "004",
@@ -34,6 +45,7 @@ const puzzles = [
     difficulty: "Expert",
     completions: 0,
     dropDate: "Week 4",
+    unlockDate: new Date(SECOND_PUZZLE_DATE.getTime() + 14 * 24 * 60 * 60 * 1000),
   },
   {
     id: "005",
@@ -42,6 +54,7 @@ const puzzles = [
     difficulty: "Master",
     completions: 0,
     dropDate: "Week 5",
+    unlockDate: new Date(SECOND_PUZZLE_DATE.getTime() + 21 * 24 * 60 * 60 * 1000),
   },
   {
     id: "006",
@@ -50,6 +63,7 @@ const puzzles = [
     difficulty: "Master",
     completions: 0,
     dropDate: "Week 6",
+    unlockDate: new Date(SECOND_PUZZLE_DATE.getTime() + 28 * 24 * 60 * 60 * 1000),
   },
 ];
 
@@ -70,7 +84,60 @@ function getDifficultyColor(difficulty: string) {
   }
 }
 
+function formatCountdown(milliseconds: number) {
+  const seconds = Math.floor(milliseconds / 1000);
+  const days = Math.floor(seconds / (24 * 60 * 60));
+  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((seconds % (60 * 60)) / 60);
+  const secs = seconds % 60;
+
+  if (days > 0) {
+    return `${days}D ${hours}H ${minutes}M`;
+  } else if (hours > 0) {
+    return `${hours}H ${minutes}M ${secs}S`;
+  } else {
+    return `${minutes}M ${secs}S`;
+  }
+}
+
+function PuzzleCountdown({ unlockDate }: { unlockDate: Date }) {
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date().getTime();
+      const remaining = Math.max(0, unlockDate.getTime() - now);
+      setTimeLeft(remaining);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [unlockDate]);
+
+  return <>{formatCountdown(timeLeft)}</>;
+}
+
 export default function PuzzlesPage() {
+  const [timeUntilNext, setTimeUntilNext] = useState<number>(0);
+
+  useEffect(() => {
+    // Calculate time until next puzzle unlock
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const nextUnlock = puzzles.find(p => p.status === "locked")?.unlockDate;
+      if (nextUnlock) {
+        const timeLeft = nextUnlock.getTime() - now;
+        setTimeUntilNext(Math.max(0, timeLeft));
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
   return (
     <main className="min-h-screen bg-black relative">
       {/* Dark Background Pattern */}
@@ -99,12 +166,14 @@ export default function PuzzlesPage() {
           </p>
 
           {/* Next Drop Countdown */}
-          <div className="inline-flex items-center gap-3 bg-purple-950/30 border border-purple-600/30 px-6 py-3 rounded-full">
-            <Clock className="w-5 h-5 text-cyan-400" />
-            <span className="text-white font-mono text-sm">
-              NEXT DROP: <span className="text-cyan-400">4 DAYS 12 HOURS</span>
-            </span>
-          </div>
+          {timeUntilNext > 0 && (
+            <div className="inline-flex items-center gap-3 bg-purple-950/30 border border-purple-600/30 px-6 py-3 rounded-full">
+              <Clock className="w-5 h-5 text-cyan-400" />
+              <span className="text-white font-mono text-sm">
+                NEXT DROP: <span className="text-cyan-400">{formatCountdown(timeUntilNext)}</span>
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -204,8 +273,13 @@ export default function PuzzlesPage() {
 
                 {/* Action Button */}
                 {puzzle.status === "locked" ? (
-                  <div className="text-xs text-gray-500 font-mono pt-3 border-t border-zinc-800">
-                    UNLOCKS {puzzle.dropDate.toUpperCase()}
+                  <div className="text-xs pt-3 border-t border-zinc-800">
+                    <div className="text-gray-500 font-mono mb-1">
+                      UNLOCKS {puzzle.dropDate.toUpperCase()}
+                    </div>
+                    <div className="text-cyan-400 font-mono">
+                      {puzzle.unlockDate && <PuzzleCountdown unlockDate={puzzle.unlockDate} />}
+                    </div>
                   </div>
                 ) : (
                   <div className="w-full px-4 py-2 bg-purple-600 text-white font-bold uppercase text-sm tracking-wider rounded transition-all text-center">
