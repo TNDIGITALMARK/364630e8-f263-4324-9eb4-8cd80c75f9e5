@@ -76,7 +76,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
             <Link
-              href="/lore"
+              href="/create"
               className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase tracking-wider rounded glow-purple-hover transition-all text-center"
             >
               Begin Ritual
@@ -129,24 +129,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer with Email Signup */}
+      {/* Footer */}
       <footer className="relative z-10 border-t border-zinc-800 bg-zinc-900/50 px-4 md:px-8 py-12">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-center md:text-left">
-            <h3 className="text-white font-bold text-lg mb-2 tracking-wider">READY TO TRANSCEND?</h3>
-            <p className="text-gray-400 text-sm">Join the ritual protocol for exclusive transmissions.</p>
+        <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
+          <div className="text-center">
+            <h3 className="text-white font-bold text-lg mb-2 tracking-wider">THE VEIL AWAITS</h3>
+            <p className="text-gray-400 text-sm">Begin your ritual to unlock the mysteries beyond.</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center w-full md:w-auto">
-            <input
-              type="email"
-              placeholder="your@email.void"
-              className="px-4 py-3 bg-zinc-900 border border-zinc-700 text-white rounded focus:border-purple-600 outline-none w-full sm:w-64"
-            />
-            <button className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase tracking-wider rounded glow-purple-hover transition-all whitespace-nowrap text-sm sm:text-base">
-              Join Protocol
-            </button>
-          </div>
+          <Link
+            href="/create"
+            className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase tracking-wider rounded glow-purple-hover transition-all"
+          >
+            Begin Ritual
+          </Link>
         </div>
 
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-zinc-800 flex justify-between items-center text-sm text-gray-500">
