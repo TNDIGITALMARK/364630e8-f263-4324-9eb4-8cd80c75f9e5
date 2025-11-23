@@ -41,23 +41,11 @@ export function PuzzleSolver({ puzzleId, solution }: PuzzleSolverProps) {
       });
       setSolved(true);
     } else {
-      // Provide helpful feedback based on attempts
-      if (attempts === 0) {
-        setFeedback({
-          type: "error",
-          message: "Incorrect. The cipher remains unbroken. Try again.",
-        });
-      } else if (attempts === 1) {
-        setFeedback({
-          type: "hint",
-          message: "Still incorrect. Consider checking your decoding method. The pattern may be simpler than you think.",
-        });
-      } else {
-        setFeedback({
-          type: "hint",
-          message: `Incorrect. ${attempts + 1} attempts made. Review the hint below if you need guidance.`,
-        });
-      }
+      // Provide feedback without hints
+      setFeedback({
+        type: "error",
+        message: "Incorrect. The cipher remains unbroken. Try again.",
+      });
     }
   };
 

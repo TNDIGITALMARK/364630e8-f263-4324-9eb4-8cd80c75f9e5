@@ -29,21 +29,21 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-4">
-        {/* Floating Runic Symbols */}
-        <div className="absolute w-full h-full">
+        {/* Floating Runic Symbols - Positioned behind text with lower opacity */}
+        <div className="absolute w-full h-full z-0">
           <Image
             src="/generated/runic-symbol-1.png"
             alt=""
             width={80}
             height={80}
-            className="absolute top-[20%] left-[15%] animate-float opacity-80"
+            className="absolute top-[20%] left-[15%] animate-float opacity-10"
           />
           <Image
             src="/generated/runic-symbol-2.png"
             alt=""
             width={80}
             height={80}
-            className="absolute top-[25%] right-[15%] animate-float opacity-80"
+            className="absolute top-[25%] right-[15%] animate-float opacity-10"
             style={{ animationDelay: "1s" }}
           />
           <Image
@@ -51,7 +51,7 @@ export default function HomePage() {
             alt=""
             width={80}
             height={80}
-            className="absolute bottom-[30%] left-[20%] animate-float opacity-80"
+            className="absolute bottom-[30%] left-[20%] animate-float opacity-10"
             style={{ animationDelay: "2s" }}
           />
           <Image
@@ -59,13 +59,13 @@ export default function HomePage() {
             alt=""
             width={80}
             height={80}
-            className="absolute bottom-[25%] right-[20%] animate-float opacity-80"
+            className="absolute bottom-[25%] right-[20%] animate-float opacity-10"
             style={{ animationDelay: "3s" }}
           />
         </div>
 
         {/* Main Content */}
-        <div className="text-center max-w-4xl animate-fadeIn">
+        <div className="text-center max-w-4xl animate-fadeIn relative z-10">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-wider">
             THERE IS SOMETHING<br />BEYOND THE VEIL
           </h1>

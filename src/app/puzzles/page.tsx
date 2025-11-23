@@ -16,7 +16,7 @@ const puzzles = [
     title: "The First Cipher",
     status: "unlocked",
     difficulty: "Novice",
-    completions: 247,
+    completions: 0,
     dropDate: "Week 1",
     unlockDate: FIRST_PUZZLE_DATE,
   },
