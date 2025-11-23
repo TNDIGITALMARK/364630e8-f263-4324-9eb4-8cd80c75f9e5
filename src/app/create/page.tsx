@@ -136,8 +136,8 @@ export default function CreatePage() {
     setLoading(true);
 
     try {
-      // Create account with username as email (username@veil.local)
-      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
+      // Create account with username as email (username@veil.app)
+      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.app`;
 
       await auth.signUp(email, password, {
         username: username,

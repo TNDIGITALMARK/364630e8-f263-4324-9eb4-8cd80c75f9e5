@@ -61,8 +61,8 @@ export default function SignupPage() {
 
     try {
       console.log('🚀 Starting signup process...');
-      // Convert username to internal email format (username@veil.local)
-      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
+      // Convert username to internal email format (username@veil.app)
+      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.app`;
       await auth.signUp(email, password, {
         username: username,
         metadata: {

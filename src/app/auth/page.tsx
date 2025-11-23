@@ -46,8 +46,8 @@ export default function AuthPage() {
     setError(null);
 
     try {
-      // Convert username to internal email format (username@veil.local)
-      const email = `${loginUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
+      // Convert username to internal email format (username@veil.app)
+      const email = `${loginUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.app`;
       await auth.login(email, loginPassword);
       // Redirect to home or dashboard on success
       router.push('/');
@@ -86,8 +86,8 @@ export default function AuthPage() {
 
     try {
       console.log('🚀 Starting signup process...');
-      // Convert username to internal email format (username@veil.local)
-      const email = `${signupUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
+      // Convert username to internal email format (username@veil.app)
+      const email = `${signupUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.app`;
       await auth.signUp(email, signupPassword, {
         username: signupUsername,
         metadata: {
