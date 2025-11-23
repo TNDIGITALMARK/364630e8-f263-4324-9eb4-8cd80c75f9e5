@@ -32,15 +32,13 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Login state
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   // Signup state
-  const [signupEmail, setSignupEmail] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
-  const [signupFullName, setSignupFullName] = useState('');
-  const [signupUsername, setSignupUsername] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +46,9 @@ export default function AuthPage() {
     setError(null);
 
     try {
-      await auth.login(loginEmail, loginPassword);
+      // Convert username to internal email format (username@veil.local)
+      const email = `${loginUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
+      await auth.login(email, loginPassword);
       // Redirect to home or dashboard on success
       router.push('/');
     } catch (err: any) {
@@ -63,9 +63,9 @@ export default function AuthPage() {
     setLoading(true);
     setError(null);
 
-    // Validate email
-    if (!signupEmail || !signupEmail.includes('@')) {
-      setError('Please enter a valid email address');
+    // Validate username
+    if (!signupUsername.trim()) {
+      setError('Username is required');
       setLoading(false);
       return;
     }
@@ -84,22 +84,15 @@ export default function AuthPage() {
       return;
     }
 
-    // Check password complexity
-    const hasUpperCase = /[A-Z]/.test(signupPassword);
-    const hasLowerCase = /[a-z]/.test(signupPassword);
-    const hasNumber = /[0-9]/.test(signupPassword);
-
-    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      setError('Password must contain uppercase, lowercase, and numbers');
-      setLoading(false);
-      return;
-    }
-
     try {
       console.log('🚀 Starting signup process...');
-      await auth.signUp(signupEmail, signupPassword, {
-        full_name: signupFullName || undefined,
-        username: signupUsername || undefined,
+      // Convert username to internal email format (username@veil.local)
+      const email = `${signupUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
+      await auth.signUp(email, signupPassword, {
+        username: signupUsername,
+        metadata: {
+          created_via: 'auth',
+        },
       });
       console.log('✅ Signup successful, redirecting...');
       // Redirect to home or dashboard on success
@@ -139,18 +132,19 @@ export default function AuthPage() {
             <TabsContent value="login" className="mt-0">
               <form onSubmit={handleLogin} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-sm font-medium">
-                    Email
+                  <Label htmlFor="login-username" className="text-sm font-medium">
+                    Username
                   </Label>
                   <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    id="login-username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
                     required
                     disabled={loading}
                     className="h-11"
+                    autoComplete="username"
                   />
                 </div>
 
@@ -186,51 +180,20 @@ export default function AuthPage() {
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignup} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-sm font-medium">
-                    Email
+                  <Label htmlFor="signup-username" className="text-sm font-medium">
+                    Username
                   </Label>
                   <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
+                    id="signup-username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={signupUsername}
+                    onChange={(e) => setSignupUsername(e.target.value)}
                     required
                     disabled={loading}
                     className="h-11"
+                    autoComplete="username"
                   />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-full-name" className="text-sm font-medium">
-                      Full Name <span className="text-muted-foreground">(optional)</span>
-                    </Label>
-                    <Input
-                      id="signup-full-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signupFullName}
-                      onChange={(e) => setSignupFullName(e.target.value)}
-                      disabled={loading}
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-username" className="text-sm font-medium">
-                      Username <span className="text-muted-foreground">(optional)</span>
-                    </Label>
-                    <Input
-                      id="signup-username"
-                      type="text"
-                      placeholder="johndoe"
-                      value={signupUsername}
-                      onChange={(e) => setSignupUsername(e.target.value)}
-                      disabled={loading}
-                      className="h-11"
-                    />
-                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -248,7 +211,7 @@ export default function AuthPage() {
                     className="h-11"
                   />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Must be at least 8 characters with uppercase, lowercase, and numbers
+                    Must be at least 8 characters
                   </p>
                 </div>
 

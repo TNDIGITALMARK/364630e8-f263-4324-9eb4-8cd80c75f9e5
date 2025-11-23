@@ -28,7 +28,7 @@ export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +39,8 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      // Convert username to internal email format (username@veil.local)
+      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
       await auth.login(email, password);
       // Redirect to home on success - customize this as needed
       router.push('/');
@@ -62,21 +64,21 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
+            {/* Username Field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
+              <Label htmlFor="username" className="text-sm font-medium">
+                Username
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={loading}
                 className="h-11"
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
 

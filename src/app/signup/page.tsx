@@ -29,11 +29,9 @@ export default function SignupPage() {
   const router = useRouter();
   const auth = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +41,8 @@ export default function SignupPage() {
     setError(null);
 
     // Client-side validation
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address');
+    if (!username.trim()) {
+      setError('Username is required');
       setLoading(false);
       return;
     }
@@ -61,22 +59,15 @@ export default function SignupPage() {
       return;
     }
 
-    // Check password complexity
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-
-    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      setError('Password must contain uppercase, lowercase, and numbers');
-      setLoading(false);
-      return;
-    }
-
     try {
       console.log('🚀 Starting signup process...');
+      // Convert username to internal email format (username@veil.local)
+      const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.local`;
       await auth.signUp(email, password, {
-        full_name: fullName || undefined,
-        username: username || undefined,
+        username: username,
+        metadata: {
+          created_via: 'signup',
+        },
       });
       console.log('✅ Signup successful, redirecting...');
       // Redirect to home on success - customize this as needed
@@ -103,57 +94,22 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
+            {/* Username Field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
+              <Label htmlFor="username" className="text-sm font-medium">
+                Username
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={loading}
                 className="h-11"
-                autoComplete="email"
+                autoComplete="username"
               />
-            </div>
-
-            {/* Optional Fields - Full Name & Username */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="full-name" className="text-sm font-medium">
-                  Full Name <span className="text-muted-foreground">(optional)</span>
-                </Label>
-                <Input
-                  id="full-name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={loading}
-                  className="h-11"
-                  autoComplete="name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-sm font-medium">
-                  Username <span className="text-muted-foreground">(optional)</span>
-                </Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="johndoe"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={loading}
-                  className="h-11"
-                  autoComplete="username"
-                />
-              </div>
             </div>
 
             {/* Password Field */}
@@ -173,7 +129,7 @@ export default function SignupPage() {
                 autoComplete="new-password"
               />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Must be at least 8 characters with uppercase, lowercase, and numbers
+                Must be at least 8 characters
               </p>
             </div>
 
