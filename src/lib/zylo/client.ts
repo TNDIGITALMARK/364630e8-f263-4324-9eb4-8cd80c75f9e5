@@ -158,6 +158,8 @@ export class ZyloClient {
             project_id: this.config.projectId,
             ...userData?.metadata,
           },
+          // Disable email confirmation requirement
+          emailConfirm: false,
         },
       });
 
@@ -172,16 +174,9 @@ export class ZyloClient {
 
       console.log('✅ Zylo Client: User signed up via direct Supabase');
 
-      // Check if email confirmation is required
-      if (signUpData.user && !signUpData.session) {
-        // User created but email not confirmed - session won't be available
-        console.log('📧 Zylo Client: Email confirmation required');
-        throw new Error('CONFIRMATION_REQUIRED');
-      }
-
-      // If we have a session, the user is auto-confirmed and logged in
+      // User is auto-confirmed and logged in (email confirmation disabled)
       if (signUpData.session) {
-        console.log('✅ Zylo Client: User auto-confirmed and logged in');
+        console.log('✅ Zylo Client: User logged in with session');
         await this.setToken(signUpData.session.access_token, signUpData.session.expires_in || null);
         this.currentTokenType = 'USER_SCOPED';
         this.scheduleReexchange();
@@ -193,16 +188,11 @@ export class ZyloClient {
     } catch (error: any) {
       console.error('❌ Zylo Client: Signup failed', error);
 
-      // Handle email confirmation required
-      if (error.message === 'CONFIRMATION_REQUIRED') {
-        throw new Error('CONFIRMATION_REQUIRED');
-      }
-
       // Provide user-friendly error messages
       if (error.message.includes('User already registered')) {
-        throw new Error('An account with this email already exists. Please sign in instead.');
+        throw new Error('An account with this username already exists. Please sign in instead.');
       } else if (error.message.includes('Invalid email')) {
-        throw new Error('Invalid email address. Please check your input.');
+        throw new Error('Invalid username. Please use only letters and numbers.');
       } else if (error.message.includes('Password')) {
         throw new Error('Password does not meet requirements. Please use a stronger password.');
       } else {
