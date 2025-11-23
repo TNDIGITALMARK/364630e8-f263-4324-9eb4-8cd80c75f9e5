@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/zylo/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,11 +25,28 @@ import { Separator } from '@/components/ui/separator';
  */
 export default function AuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const auth = useAuth();
 
   // Shared state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+
+  // Check for confirmation success or errors from URL params
+  useEffect(() => {
+    const confirmed = searchParams.get('confirmed');
+    const errorParam = searchParams.get('error');
+    const message = searchParams.get('message');
+
+    if (confirmed === 'true' && message) {
+      setSuccessMessage(decodeURIComponent(message));
+    } else if (errorParam && message) {
+      setError(decodeURIComponent(message));
+    }
+  }, [searchParams]);
 
   // Login state
   const [loginUsername, setLoginUsername] = useState('');
@@ -44,6 +61,7 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       // Convert username to internal email format (username@veil.app)
@@ -52,7 +70,12 @@ export default function AuthPage() {
       // Redirect to home or dashboard on success
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      // Handle email not confirmed error
+      if (err.message.includes('Email not confirmed') || err.message.includes('email_not_confirmed')) {
+        setError('Please confirm your email address before signing in. Check your inbox for the confirmation link.');
+      } else {
+        setError(err.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,6 +85,7 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setConfirmationRequired(false);
 
     // Validate username
     if (!signupUsername.trim()) {
@@ -88,6 +112,8 @@ export default function AuthPage() {
       console.log('🚀 Starting signup process...');
       // Convert username to internal email format (username@veil.app)
       const email = `${signupUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}@veil.app`;
+      setUserEmail(email);
+
       await auth.signUp(email, signupPassword, {
         username: signupUsername,
         metadata: {
@@ -99,8 +125,15 @@ export default function AuthPage() {
       router.push('/');
     } catch (err: any) {
       console.error('❌ Signup error:', err);
-      // Display user-friendly error messages
-      setError(err.message || 'Account creation failed. Please try again.');
+
+      // Handle email confirmation required
+      if (err.message === 'CONFIRMATION_REQUIRED') {
+        setConfirmationRequired(true);
+        setError(null);
+      } else {
+        // Display user-friendly error messages
+        setError(err.message || 'Account creation failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,6 +151,15 @@ export default function AuthPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
+          {/* Success message from email confirmation */}
+          {successMessage && (
+            <Alert className="mb-6 border-primary bg-primary/10">
+              <AlertDescription className="text-sm text-primary">
+                {successMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="login" className="text-sm">
@@ -178,7 +220,34 @@ export default function AuthPage() {
 
             {/* Signup Tab */}
             <TabsContent value="signup" className="mt-0">
-              <form onSubmit={handleSignup} className="space-y-5">
+              {confirmationRequired ? (
+                <div className="space-y-4">
+                  <Alert className="border-primary bg-primary/10">
+                    <AlertDescription className="text-sm space-y-2">
+                      <p className="font-semibold text-primary">Check your email!</p>
+                      <p>
+                        We've sent a confirmation link to <strong>{userEmail}</strong>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Click the link in the email to activate your account. Once confirmed, you can sign in.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    onClick={() => {
+                      setConfirmationRequired(false);
+                      setSignupUsername('');
+                      setSignupPassword('');
+                      setSignupConfirmPassword('');
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Back to Sign Up
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSignup} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="signup-username" className="text-sm font-medium">
                     Username
@@ -267,6 +336,7 @@ export default function AuthPage() {
                   )}
                 </Button>
               </form>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

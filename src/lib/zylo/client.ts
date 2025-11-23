@@ -149,6 +149,7 @@ export class ZyloClient {
         email,
         password,
         options: {
+          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined,
           data: {
             full_name: userData?.full_name,
             username: userData?.username,
@@ -171,10 +172,31 @@ export class ZyloClient {
 
       console.log('✅ Zylo Client: User signed up via direct Supabase');
 
-      // Automatically login the user
+      // Check if email confirmation is required
+      if (signUpData.user && !signUpData.session) {
+        // User created but email not confirmed - session won't be available
+        console.log('📧 Zylo Client: Email confirmation required');
+        throw new Error('CONFIRMATION_REQUIRED');
+      }
+
+      // If we have a session, the user is auto-confirmed and logged in
+      if (signUpData.session) {
+        console.log('✅ Zylo Client: User auto-confirmed and logged in');
+        await this.setToken(signUpData.session.access_token, signUpData.session.expires_in || null);
+        this.currentTokenType = 'USER_SCOPED';
+        this.scheduleReexchange();
+        return;
+      }
+
+      // Fallback: try to login (for cases where signup succeeded but we need to authenticate)
       await this.login(email, password);
     } catch (error: any) {
       console.error('❌ Zylo Client: Signup failed', error);
+
+      // Handle email confirmation required
+      if (error.message === 'CONFIRMATION_REQUIRED') {
+        throw new Error('CONFIRMATION_REQUIRED');
+      }
 
       // Provide user-friendly error messages
       if (error.message.includes('User already registered')) {
